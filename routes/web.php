@@ -11,6 +11,6 @@
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', 'ImageController@index');
+Route::get('storage/{file}', 'ImageController@files')->name('storage.file');
+Route::post('json', 'ImageController@store')->name('json');
