@@ -3,41 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Image;
-use Illuminate\Http\File;
+use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use RecursiveArrayIterator;
-use RecursiveIteratorIterator;
 
 class ImageController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+
+    public function all()
     {
-        return view('welcome');
+        // return asset('images/callao.jpg');
+        return view('image');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function all($files)
-    {
-        return 'hola';
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
+    public function getJson(Request $request)
     {
         $json = $request->json;
         $var = json_decode(
@@ -45,56 +24,40 @@ class ImageController extends Controller
             , true
         );
 
+        $array = [];
+
         foreach ($var['data'] as $data) {
-            
+            array_push($array, $data['path_image']);
         }
 
-        // dd($var);
-        return $var['data'];
+        $this->copyImage($array);
+
+        return $array;
+        // return storage_path('public');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Image  $image
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Image $image)
+    public function copyImage($array)
     {
-        //
+        foreach($array as $path){
+            Storage::put($path, \Response::make(File::get($path)));
+            // File::copy(asset($path),storage_path('public/images/callao.jpg'));
+        }
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Image  $image
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Image $image)
+    public function files($filename)
     {
-        //
-    }
+        $path = storage_path('public/' . $filename);
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Image  $image
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Image $image)
-    {
-        //
-    }
+        if (!File::exists($path)) {
+            abort(404);
+        }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Image  $image
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Image $image)
-    {
-        //
+        $file = File::get($path);
+        $type = File::mimeType($path);
+
+        $response = Response::make($file, 200);
+        $response->header("Content-Type", $type);
+
+        return $response;
     }
 }

@@ -17,5 +17,7 @@
             <input type="file" name="json" id="json">
             <input type="submit" value="enviar">
         </form>
+
+        @yield('content')
     </body>
 </html>
