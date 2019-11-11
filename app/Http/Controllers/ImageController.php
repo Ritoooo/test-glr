@@ -70,7 +70,7 @@ class ImageController extends Controller
     public function copyImage($locations, $dest)
     {
         foreach($locations as $location){
-            if (!Storage::exists($dest.$location)) {
+            if (!Storage::exists($dest.$location) && Storage::exists($location)) {
                 Storage::disk('local')->copy($location, $dest.$location);
     
                 Image::updateOrCreate(      //Si es que por alguna razón ya estaba registrado en la bd mas la imagen no estaba en el storage
@@ -97,8 +97,10 @@ class ImageController extends Controller
         $path = $this->request->input('path');
         $dest = $this->request->input('dest');
         $this->copyImage((array) $path, $dest);
+        $result = $this->notCopied((array) $path, $dest);
+        $result = empty($result) ? 'Copiado!' : 'No se pudo copiar, revise bien si el archivo está dañado o si el nombre no concuerda con la ruta -> ' . storage_path($path);
      
-        return 'copiado';
+        return $result;
     }
 
 }
