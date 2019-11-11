@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateImagesTable extends Migration
+class MigrationsFile extends Migration
 {
     /**
      * Run the migrations.
@@ -13,10 +13,11 @@ class CreateImagesTable extends Migration
      */
     public function up()
     {
-        Schema::create('migrations_file', function (Blueprint $table) {
+        Schema::create('migrations-file', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('name_image');
-            $table->timestamp('date_created');
+            $table->dateTime('date_created');
+            $table->timestamps();
         });
     }
 
@@ -27,6 +28,6 @@ class CreateImagesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('images');
+        //
     }
 }

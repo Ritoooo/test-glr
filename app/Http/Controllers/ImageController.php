@@ -3,61 +3,102 @@
 namespace App\Http\Controllers;
 
 use App\Image;
-use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ImageController extends Controller
 {
+    protected $request;
 
-    public function all()
-    {
-        // return asset('images/callao.jpg');
-        return view('image');
+    public function __construct(Request $request) {
+        $this->request = $request;
     }
 
+    /**
+     * Recibe un archivo json
+     * Lee las rutas de las imágenes que el json provee para que se copien a otro destino
+     * 
+     * @param Illuminate\Http\Request
+     * @return \Illuminate\Http\Response
+     */
     public function getJson(Request $request)
     {
-        $json = $request->json;
-        $var = json_decode(
-            file_get_contents($request->json->path())
-            , true
-        );
+        $file = $request->json;
+        $json = json_decode(file_get_contents($file->path()), true);
+        
+        $dest = 'copy/';
+        $locations = [];
+        $destPaths = [];
 
-        $array = [];
-
-        foreach ($var['data'] as $data) {
-            array_push($array, $data['path_image']);
+        foreach ($json['data'] as $data) {
+            array_push($locations, $data['path_image']);
+            array_push($destPaths, $dest.$data['path_image']);
         }
 
-        $this->copyImage($array);
+        $this->copyImage($locations, $dest);
+        $result = $this->notCopied($locations, $dest);
 
-        return $array;
-        // return storage_path('public');
+        return view('result', compact('result', 'dest'));
+
     }
 
-    public function copyImage($array)
+    /**
+     * Verifica qué imágenes no se ha encontrado en la ruta destino y las retorna si es que encuentra
+     * 
+     * @param array $locations
+     * @param string $dest
+     * @return array
+     */
+    public function notCopied($locations, $dest)
     {
-        foreach($array as $path){
-            Storage::put($path, \Response::make(File::get($path)));
-            // File::copy(asset($path),storage_path('public/images/callao.jpg'));
+        $notCopied = [];
+        foreach ($locations as $location) {
+            if (!Storage::exists($dest.$location)) {
+                array_push($notCopied, $location);
+            }
         }
+        return ($notCopied);
     }
 
-    public function files($filename)
+    /**
+     * Copia las imágenes que se le dé como parámetro al Storage en la carpeta especificada
+     * Crea el registro en la base de datos
+     * 
+     * @param array $locations
+     * @param string $dest
+     */
+    public function copyImage($locations, $dest)
     {
-        $path = storage_path('public/' . $filename);
-
-        if (!File::exists($path)) {
-            abort(404);
+        foreach($locations as $location){
+            if (!Storage::exists($dest.$location)) {
+                Storage::disk('local')->copy($location, $dest.$location);
+    
+                Image::updateOrCreate(      //Si es que por alguna razón ya estaba registrado en la bd mas la imagen no estaba en el storage
+                    [
+                        'name_image' => $dest.$location
+                    ],
+                    [
+                        'name_image' => $dest.$location,
+                        'date_created' => now(),
+                    ]
+                );
+            }
         }
-
-        $file = File::get($path);
-        $type = File::mimeType($path);
-
-        $response = Response::make($file, 200);
-        $response->header("Content-Type", $type);
-
-        return $response;
     }
+
+    /**
+     * Si hay imágenes que no se pudieron copiar
+     * Con este método se puede volver a intentar individualmente 
+     * 
+     * @return string
+     */
+    public function copyOneImage()
+    {
+        $path = $this->request->input('path');
+        $dest = $this->request->input('dest');
+        $this->copyImage((array) $path, $dest);
+     
+        return 'copiado';
+    }
+
 }
