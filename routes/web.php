@@ -14,3 +14,6 @@
 Route::view('/', 'welcome');
 Route::post('json', 'ImageController@getJson')->name('json');
 Route::get('storage/specific', 'ImageController@copyOneImage')->name('storage.specific');
+Auth::routes();
+
+Route::get('/home', 'HomeController@index')->name('home');
